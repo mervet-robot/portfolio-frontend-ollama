@@ -12,9 +12,23 @@
              style="display: none;"
              accept="image/jpeg, image/png, image/gif">
 
+      <!-- Verification status -->
+      <div class="verification-status"
+           [class.verified]="isHumanVerified"
+           [class.not-verified]="!isHumanVerified && verificationMessage"
+           [class.verifying]="isVerifying">
+        <mat-spinner *ngIf="isVerifying" diameter="20"></mat-spinner>
+        <mat-icon *ngIf="!isVerifying && isHumanVerified">check_circle</mat-icon>
+        <mat-icon *ngIf="!isVerifying && !isHumanVerified && verificationMessage">warning</mat-icon>
+        {{ verificationMessage }}
+      </div>
+
+
       <button mat-icon-button (click)="fileInput.click()" class="upload-btn">
         <mat-icon>photo_camera</mat-icon>
       </button>
+
+
     </div>
 
 

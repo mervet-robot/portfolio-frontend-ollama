@@ -49,6 +49,7 @@ import { UserMediaComponent } from './features/user-media/user-media.component';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {provideAnimationsAsync} from '@angular/platform-browser/animations/async';
 import { BioCorrectionDialogComponent } from './features/bio-correction-dialog/bio-correction-dialog.component';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 
 
@@ -122,6 +123,8 @@ import { BioCorrectionDialogComponent } from './features/bio-correction-dialog/b
         MatSelectModule,
         MatOptionModule,
         MatInputModule,
+
+      MatTooltipModule,
 
         MatButtonToggleModule,
         NgOptimizedImage

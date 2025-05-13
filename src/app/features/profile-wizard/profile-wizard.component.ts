@@ -145,7 +145,8 @@ export class ProfileWizardComponent  implements OnInit {
     this.profileForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],      phoneNumber: [''],
+      email: ['', [Validators.required, Validators.email]],
+      phoneNumber: [''],
       diploma: [''],
       bio: [''],
       profilePicture: ['']
@@ -489,6 +490,7 @@ export class ProfileWizardComponent  implements OnInit {
       }
     });
   }
+
   saveProfile(): void {
     if (this.profileForm.valid) {
       const profileData: ProfileUpdateRequest = {
