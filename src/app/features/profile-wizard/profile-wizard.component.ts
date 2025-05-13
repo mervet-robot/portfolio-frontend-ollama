@@ -17,7 +17,7 @@ import {CertificationService} from '../../_services/certification.service';
 import {ProjectService} from '../../_services/project.service';
 import { Router } from '@angular/router';
 import {ProfileUpdateRequest} from '../../_models/profile';
-import { HttpEventType } from '@angular/common/http';
+import {HttpClient, HttpEventType} from '@angular/common/http';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {debounceTime, distinctUntilChanged, filter} from 'rxjs';
 import { MatDialog } from '@angular/material/dialog';
@@ -128,7 +128,9 @@ export class ProfileWizardComponent  implements OnInit {
     private tokenService: TokenService,
     private router: Router,
     private snackBar: MatSnackBar,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private http: HttpClient,
+
   ) {
     this.userId = this.tokenService.getUser().id;
   }
@@ -143,8 +145,7 @@ export class ProfileWizardComponent  implements OnInit {
     this.profileForm = this.fb.group({
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
-      email:['', Validators.required],
-      phoneNumber: [''],
+      email: ['', [Validators.required, Validators.email]],      phoneNumber: [''],
       diploma: [''],
       bio: [''],
       profilePicture: ['']
@@ -306,7 +307,7 @@ export class ProfileWizardComponent  implements OnInit {
 
   // -----------------Upload Image + Save Profile
 
-// This method should be added to your component
+  // This method should be added to your component
   getProfilePictureUrl(): string {
     if (this.previewUrl) {
       return this.previewUrl as string;
@@ -327,25 +328,78 @@ export class ProfileWizardComponent  implements OnInit {
   }
 
 
-  onFileSelected(event: any): void {
-    const file: File = event.target.files[0];
-    if (file) {
-      // Reset progress
-      this.uploadProgress = 0;
+  // Add these properties to your component class
+  verificationMessage: string = '';
+  isHumanVerified: boolean = false;
+  isVerifying: boolean = false;
+  //------ Add this new method for LLM verification PICTURE-----
+  async verifyWithLLM(file: File): Promise<void> {
+    this.verificationMessage = 'Verifying image...';
 
-      // Create preview
+    // Convert file to base64
+    const base64Image = await this.fileToBase64(file);
+
+    // Call Hugging Face API (using a free model)
+    const response: any = await this.http.post(
+      'https://api-inference.huggingface.co/models/facebook/detr-resnet-50',
+      { inputs: base64Image },
+      {
+        headers: {
+          'Authorization': 'Bearer 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', // Get free key from Hugging Face
+          'Content-Type': 'application/json'
+        }
+      }
+    ).toPromise();
+
+    // Check if human is detected
+    const hasPerson = response.some((item: any) =>
+      item.label.toLowerCase().includes('person') && item.score > 0.7
+    );
+
+    if (hasPerson) {
+      this.verificationMessage = 'Human face verified!';
+      this.isHumanVerified = true;
+    } else {
+      this.verificationMessage = 'No human face detected. Please upload a clear photo of yourself.';
+      this.isHumanVerified = false;
+    }
+  }
+
+  // Helper method to convert file to base64
+  private fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => {
-        this.previewUrl = reader.result;
+        const result = reader.result as string;
+        // Remove the data:image/...;base64, prefix
+        resolve(result.split(',')[1]);
       };
+      reader.onerror = error => reject(error);
+    });
+  }
 
-      // Validate file type and size
+  // ----- END LLM verification PICTURE ---------
+
+
+// Update your onFileSelected method
+// Update your onFileSelected method
+  async onFileSelected(event: any): Promise<void> {
+    const file: File = event.target.files[0];
+    if (file) {
+      // Reset states
+      this.uploadProgress = 0;
+      this.verificationMessage = '';
+      this.isHumanVerified = false;
+      this.isVerifying = true;
+
+      // Validate file type and size first
       if (!file.type.match(/image\/(jpeg|png|gif)/)) {
         this.snackBar.open('Only JPEG, PNG, or GIF images are allowed', 'Close', {
           duration: 5000,
           panelClass: ['error-snackbar']
         });
+        this.isVerifying = false;
         return;
       }
 
@@ -354,50 +408,87 @@ export class ProfileWizardComponent  implements OnInit {
           duration: 5000,
           panelClass: ['error-snackbar']
         });
+        this.isVerifying = false;
         return;
       }
 
-      this.profileService.uploadProfilePicture(this.userId, file).subscribe({
-        next: (event: any) => {
-          if (event.type === HttpEventType.UploadProgress) {
-            // Update progress
-            this.uploadProgress = Math.round(100 * event.loaded / event.total);
-          } else if (event.type === HttpEventType.Response) {
-            // Handle successful upload
-            this.uploadProgress = null;
+      // Create preview
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = async () => {
+        this.previewUrl = reader.result;
 
-            // Get the profile data from the response
-            const profileData = event.body;
+        // Perform verification
+        try {
+          await this.verifyWithLLM(file);
 
-            if (profileData && profileData.profilePicture) {
-              // Update form with the new image path
-              this.profileForm.patchValue({ profilePicture: profileData.profilePicture });
-
-              // Reset preview (will now use the form value)
-              this.previewUrl = null;
-
-              // Show success message
-              this.snackBar.open('Profile picture updated successfully!', 'Close', {
-                duration: 3000,
-                panelClass: ['success-snackbar']
-              });
-            }
+          // Only proceed with upload if human is verified
+          if (this.isHumanVerified) {
+            this.uploadProfilePicture(file);
+          } else {
+            this.snackBar.open(this.verificationMessage, 'Close', {
+              duration: 5000,
+              panelClass: ['error-snackbar']
+            });
+            // Reset preview if not human
+            this.previewUrl = null;
+            event.target.value = ''; // Clear the file input
           }
-        },
-        error: (err) => {
-          console.error('Upload error:', err);
-          this.uploadProgress = null;
-          this.previewUrl = null;
-          this.snackBar.open('Error uploading image. Please try again.', 'Close', {
+        } catch (error) {
+          console.error('Verification failed:', error);
+          this.verificationMessage = 'Verification service unavailable. Please try again later.';
+          this.isHumanVerified = false;
+          this.snackBar.open(this.verificationMessage, 'Close', {
             duration: 5000,
             panelClass: ['error-snackbar']
           });
+        } finally {
+          this.isVerifying = false;
         }
-      });
+      };
     }
   }
 
+// Extract the upload logic to a separate method
+  private uploadProfilePicture(file: File): void {
+    this.profileService.uploadProfilePicture(this.userId, file).subscribe({
+      next: (event: any) => {
+        if (event.type === HttpEventType.UploadProgress) {
+          // Update progress
+          this.uploadProgress = Math.round(100 * event.loaded / event.total);
+        } else if (event.type === HttpEventType.Response) {
+          // Handle successful upload
+          this.uploadProgress = null;
 
+          // Get the profile data from the response
+          const profileData = event.body;
+
+          if (profileData && profileData.profilePicture) {
+            // Update form with the new image path
+            this.profileForm.patchValue({ profilePicture: profileData.profilePicture });
+
+            // Reset preview (will now use the form value)
+            this.previewUrl = null;
+
+            // Show success message
+            this.snackBar.open('Profile picture updated successfully!', 'Close', {
+              duration: 3000,
+              panelClass: ['success-snackbar']
+            });
+          }
+        }
+      },
+      error: (err) => {
+        console.error('Upload error:', err);
+        this.uploadProgress = null;
+        this.previewUrl = null;
+        this.snackBar.open('Error uploading image. Please try again.', 'Close', {
+          duration: 5000,
+          panelClass: ['error-snackbar']
+        });
+      }
+    });
+  }
   saveProfile(): void {
     if (this.profileForm.valid) {
       const profileData: ProfileUpdateRequest = {
@@ -844,6 +935,8 @@ export class ProfileWizardComponent  implements OnInit {
 
 
 
+ //------ Add this new method for LLM verification TEXT-------------
+
   verifyingBio = false;
 
   verifyBio(): void {
@@ -898,6 +991,8 @@ export class ProfileWizardComponent  implements OnInit {
       }
     });
   }
+
+  //------ END LLM verification TEXT-------------
 
 
 }
