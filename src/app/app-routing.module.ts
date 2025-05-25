@@ -14,6 +14,8 @@ import {
   ProjectMediaUploadComponentComponent
 } from './features/project-media-upload-component/project-media-upload-component.component';
 import {PortfolioComponent} from './features/portfolio/portfolio.component';
+import {ResponsableListComponent} from './admine/features/responsable-list/responsable-list.component';
+import {ResponsableFormComponent} from './admine/features/responsable-form/responsable-form.component';
 
 const routes: Routes = [
 
@@ -55,6 +57,13 @@ const routes: Routes = [
   // },
 
   // { path: '', redirectTo: 'portfolio', pathMatch: 'full' }
+
+
+  //ADMIN
+  { path: 'resp-list', component: ResponsableListComponent },
+  { path: 'resp-form', component: ResponsableFormComponent },
+
+
 
 ];
 

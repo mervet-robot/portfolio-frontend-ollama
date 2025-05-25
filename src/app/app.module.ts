@@ -50,6 +50,8 @@ import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {provideAnimationsAsync} from '@angular/platform-browser/animations/async';
 import { BioCorrectionDialogComponent } from './features/bio-correction-dialog/bio-correction-dialog.component';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { ResponsableListComponent } from './admine/features/responsable-list/responsable-list.component';
+import { ResponsableFormComponent } from './admine/features/responsable-form/responsable-form.component';
 
 
 
@@ -73,7 +75,8 @@ import { MatTooltipModule } from '@angular/material/tooltip';
     FileSizePipe,
     UserMediaComponent,
     BioCorrectionDialogComponent,
-
+    ResponsableListComponent,
+    ResponsableFormComponent,
 
 
   ],
@@ -127,7 +130,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
       MatTooltipModule,
 
         MatButtonToggleModule,
-        NgOptimizedImage
+        NgOptimizedImage,
     ],
   providers: [
     provideClientHydration(withEventReplay()),

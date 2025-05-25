@@ -62,7 +62,7 @@ export class LoginComponent implements OnInit {
 
         this.showRoleBasedMessage(data.role);
 
-        if (!['LAUREAT', 'RESPONSABLE', 'DIRECTEUR'].includes(data.role)) {
+        if (!['LAUREAT','APPRENANT', 'RESPONSABLE', 'DIRECTEUR'].includes(data.role)) {
           this.tokenService.signOut();
           this.isLoggedIn = false;
           return;
@@ -91,6 +91,9 @@ export class LoginComponent implements OnInit {
     this.showRoleMessage = true;
 
     switch(role) {
+      case 'APPRENANT':
+        this.successMessage = 'Login successful as APPRENANT';
+        break;
       case 'LAUREAT':
         this.successMessage = 'Login successful as LAUREAT';
         break;
@@ -100,8 +103,8 @@ export class LoginComponent implements OnInit {
       case 'DIRECTEUR':
         this.successMessage = 'Login successful as DIRECTEUR';
         break;
-      case 'APPRENANT':
-        this.errorMessage = 'Sorry, you are still an APPRENANT. You should register again to benefit from this service.';
+      case 'USER':
+        this.errorMessage = 'Sorry, you are still an USER. You should register again to benefit from this service.';
         this.tokenService.signOut();
         this.isLoginFailed = true;
         this.isLoggedIn = false;
@@ -115,6 +118,7 @@ export class LoginComponent implements OnInit {
   redirectBasedOnRole(role: string): void {
     switch (role) {
       case 'LAUREAT':
+      case 'APPRENANT':
         this.router.navigateByUrl("/profile-wizard");
         break;
       case 'RESPONSABLE':

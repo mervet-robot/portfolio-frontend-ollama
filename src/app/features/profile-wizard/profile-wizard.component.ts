@@ -33,7 +33,7 @@ import {BioCorrectionDialogComponent} from '../bio-correction-dialog/bio-correct
 })
 export class ProfileWizardComponent  implements OnInit {
   currentStep = 1;
-  totalSteps = 7;
+  totalSteps = 8;
   userId: number;
 
 // Add these to your component class
